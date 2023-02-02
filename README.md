@@ -15,7 +15,7 @@ Moreover, we argue that CAMPS truly mimics the nature of chemical reactions, i.e
 Extensive experiments on various tasks with real-world and synthetic datasets demonstrate the superiority of CAMPS over state-of-the-art baseline models.
 
 ## Overall model architecture
-<img src="img/architecture.png" width="70%"></img> 
+<img src="img/architecture.png" width="150%"></img> 
 
 
 ## Requirements
