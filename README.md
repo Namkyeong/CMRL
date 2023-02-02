@@ -14,7 +14,11 @@ With the conditional intervention framework, our model successfully learns from 
 Moreover, we argue that CAMPS truly mimics the nature of chemical reactions, i.e., the causal substructure in a molecule varies depending on which other molecule it interacts with.
 Extensive experiments on various tasks with real-world and synthetic datasets demonstrate the superiority of CAMPS over state-of-the-art baseline models.
 
-<img src="img/architecture.png" width="2000px"></img> 
+<figure>
+<img src="img/architecture.png" width="4000px"></img> 
+<figcaption align = "center"><b>Overall Model Architecture</b></figcaption>
+</figure>
+
 **Overall model architecture**
 
 ## Requirements
