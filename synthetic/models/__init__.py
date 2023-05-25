@@ -1,1 +1,1 @@
-from .CAMPS import CAMPS_ModelTrainer, CAMPS
+from .CMRL import CMRL_ModelTrainer, CMRL

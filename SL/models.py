@@ -121,9 +121,9 @@ class Model(nn.Module):
         return scores
 
 
-class CAMPS(nn.Module):
+class CMRL(nn.Module):
     def __init__(self, args, device):
-        super(CAMPS, self).__init__()
+        super(CMRL, self).__init__()
         self.args = args
         self.nhid = args.nhid
 

@@ -12,7 +12,7 @@ def parse_args():
     parser.add_argument('--step_size', type=float, default=0.001)
     parser.add_argument('--min_lr', type=float, default=1e-6)
 
-    parser.add_argument('--embedder', type=str, default="CAMPS")
+    parser.add_argument('--embedder', type=str, default="CMRL")
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument("--es", type=int, default=20)
     parser.add_argument("--patience", type=int, default=15)

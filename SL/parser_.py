@@ -8,7 +8,7 @@ def parameter_parser():
     parser = argparse.ArgumentParser(description="Run the code.")
 
     parser.add_argument('--seed', type=int, default=2020, help='Random seed')
-    parser.add_argument('--embedder', type=str, default='CAMPS', help='Specify the model')
+    parser.add_argument('--embedder', type=str, default='CMRL', help='Specify the model')
     parser.add_argument("--dataset", nargs="?", default="AIDS700nef", help="Dataset name. reg: AIDS700nef/LINUX/IMDBMulti and cls: ffmpeg_min3/20/50, openssl_min3/20/50")
     parser.add_argument("--epochs", type=int, default=10000, help="Number of training epochs. Default is 10000.")
     parser.add_argument("--batch-size", type=int, default=512, help="Number of graph pairs per batch. Default is 128.")
@@ -28,7 +28,7 @@ def parameter_parser():
         parser.add_argument('--mode', type=str, default='RW', help='Specify hypergraph construction mode NEighbor(NE)/RandomWalk(RW)')  
         parser.add_argument('--k', type=int, default=5, help='Hyperparameter for construction hyperedge')
     
-    if parser.parse_known_args()[0].embedder == "CAMPS":
+    if parser.parse_known_args()[0].embedder == "CMRL":
         parser.add_argument("--intervention", action = "store_true", default=True, help = 'Do Causal Intervention?')
         parser.add_argument("--conditional", action = "store_true", default=True, help = 'Do Conditional Causal Intervention?')
         parser.add_argument("--lam1", type=float, default=1.0)

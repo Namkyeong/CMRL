@@ -17,13 +17,13 @@ from torch_scatter import scatter_mean, scatter_add, scatter_std
 import random
 import time
 
-class CAMPS_ModelTrainer(embedder):
+class CMRL_ModelTrainer(embedder):
     def __init__(self, args, train_df, valid_df, test_df, repeat, fold):
         embedder.__init__(self, args, train_df, valid_df, test_df, repeat, fold)
 
         self.num_classes = 2
 
-        self.model = CAMPS(device = self.device, num_step_message_passing = self.args.num_layers, num_classes = self.num_classes, intervention = self.args.intervention, conditional = self.args.conditional).to(self.device)
+        self.model = CMRL(device = self.device, num_step_message_passing = self.args.num_layers, num_classes = self.num_classes, intervention = self.args.intervention, conditional = self.args.conditional).to(self.device)
         self.optimizer = optim.Adam(params = self.model.parameters(), lr = self.args.lr, weight_decay = self.args.weight_decay)
         self.scheduler = ReduceLROnPlateau(self.optimizer, patience=self.args.patience, mode='max', verbose=True)
         
@@ -92,7 +92,7 @@ class CAMPS_ModelTrainer(embedder):
         return self.best_test_roc, self.best_test_ap, self.best_test_f1, self.best_test_acc
 
 
-class CAMPS(nn.Module):
+class CMRL(nn.Module):
     """
     This the main class for CIGIN model
     """
@@ -108,7 +108,7 @@ class CAMPS(nn.Module):
                 intervention = False,
                 conditional = False
                 ):
-        super(CAMPS, self).__init__()
+        super(CMRL, self).__init__()
 
         self.device = device
         self.node_input_dim = node_input_dim

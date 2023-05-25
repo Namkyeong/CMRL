@@ -4,7 +4,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--repeat", type=int, default=1)
     parser.add_argument("--fold", type=int, default=5)
-    parser.add_argument("--embedder", type=str, default="CAMPS")
+    parser.add_argument("--embedder", type=str, default="CMRL")
     parser.add_argument("--device", type=int, default=0)
     parser.add_argument("--lr", type=float, default=0.0005)
     parser.add_argument("--weight_decay", type=float, default = 0.0)
@@ -24,7 +24,7 @@ def parse_args():
     # train dataset
     parser.add_argument("--dataset", type = str, default = 'ChChMiner_transductive', help = 'ZhangDDI / ChChMiner / DeepDDI')
     
-    if 'CAMPS' in parser.parse_known_args()[0].embedder:
+    if 'CMRL' in parser.parse_known_args()[0].embedder:
         parser.add_argument("--intervention", action = "store_true", default=False, help = 'Do Causal Intervention?')
         parser.add_argument("--conditional", action = "store_true", default=False, help = 'Do Conditional Causal Intervention?')
         parser.add_argument("--symmetric", action = "store_true", default=False, help = 'Do Conditional Causal Intervention?')

@@ -61,9 +61,9 @@ def experiment():
 
 def main(args, train_df, valid_df, test_df, repeat = 0, fold = 0):
 
-    if args.embedder == 'CAMPS':
-        from models import CAMPS_ModelTrainer
-        embedder = CAMPS_ModelTrainer(args, train_df, valid_df, test_df, repeat, fold)
+    if args.embedder == 'CMRL':
+        from models import CMRL_ModelTrainer
+        embedder = CMRL_ModelTrainer(args, train_df, valid_df, test_df, repeat, fold)
 
     best_roc, best_ap, best_f1, best_acc = embedder.train()
 

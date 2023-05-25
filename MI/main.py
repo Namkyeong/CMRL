@@ -86,9 +86,9 @@ def experiment():
 def main(args, train_df, valid_df, test_df, repeat, fold = 0):
 
  
-    if args.embedder == 'CAMPS':
-        from models import CAMPS_ModelTrainer
-        embedder = CAMPS_ModelTrainer(args, train_df, valid_df, test_df, repeat, fold)
+    if args.embedder == 'CMRL':
+        from models import CMRL_ModelTrainer
+        embedder = CMRL_ModelTrainer(args, train_df, valid_df, test_df, repeat, fold)
 
     best_mse, best_mae = embedder.train()
 

@@ -9,7 +9,7 @@ from torch_geometric.data import Batch
 from torch_geometric.data import DataLoader
 from scipy.stats import spearmanr, kendalltau
 
-from models import CAMPS
+from models import CMRL
 from parser_ import parameter_parser, config2string
 from utils import tab_printer, GraphRegressionDataset, prec_at_ks, calculate_ranking_correlation, create_batch_mask
 
@@ -31,8 +31,8 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed(args.seed)
 tab_printer(args)
 
-if args.embedder == "CAMPS":
-    model = CAMPS(args, device).to(args.device)
+if args.embedder == "CMRL":
+    model = CMRL(args, device).to(args.device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 

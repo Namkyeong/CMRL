@@ -9,28 +9,27 @@ import numpy as np
 from torch_geometric.nn import Set2Set, global_mean_pool
 
 from embedder import embedder
-from layers import GatherModel, GINE
+from layers import GatherModel
 from utils import create_batch_mask, create_interv_mask
 
 from torch_scatter import scatter_mean, scatter_add, scatter_std
 
 import random
+
 import time
 
-class CAMPS_ModelTrainer(embedder):
-    # This is Causal7_sup model in Molecular Interaction
+class CMRL_ModelTrainer(embedder):
+    
     def __init__(self, args, train_df, valid_df, test_df, repeat, fold):
         embedder.__init__(self, args, train_df, valid_df, test_df, repeat, fold)
 
-        self.num_classes = 2
-
-        self.model = CAMPS(device = self.device, num_step_message_passing = self.args.message_passing, num_classes = self.num_classes, intervention = self.args.intervention, conditional = self.args.conditional).to(self.device)
+        self.model = CMRL(device = self.device, num_step_message_passing = self.args.message_passing, intervention = self.args.intervention, conditional = self.args.conditional).to(self.device)
         self.optimizer = optim.Adam(params = self.model.parameters(), lr = self.args.lr, weight_decay = self.args.weight_decay)
-        self.scheduler = ReduceLROnPlateau(self.optimizer, patience=self.args.patience, mode='max', verbose=True)
+        self.scheduler = ReduceLROnPlateau(self.optimizer, patience=self.args.patience, mode='min', verbose=True)
         
-    def train(self):
+    def train(self):        
         
-        loss_function_BCE = nn.BCEWithLogitsLoss(reduction='mean')
+        loss_fn = torch.nn.MSELoss()
         
         for epoch in range(1, self.args.epochs + 1):
             self.model.train()
@@ -40,14 +39,12 @@ class CAMPS_ModelTrainer(embedder):
             self.loss_inv = 0
             self.importance = 0
 
-            start = time.time()
-
             for bc, samples in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
                 masks = create_batch_mask(samples)
 
                 pred = self.model([samples[0].to(self.device), samples[1].to(self.device), masks[0].to(self.device), masks[1].to(self.device)])
-                loss = loss_function_BCE(pred, samples[2].reshape(-1, 1).to(self.device).float()).mean() # Supervised Loss
+                loss = loss_fn(pred, samples[2].reshape(-1, 1).to(self.device).float()) # Supervised Loss
 
                 if self.args.symmetric:
                     if epoch % 2 == 0:
@@ -58,19 +55,21 @@ class CAMPS_ModelTrainer(embedder):
                 
                 else:
                     pos, neg, rand = self.model([samples[0].to(self.device), samples[1].to(self.device), masks[0].to(self.device), masks[1].to(self.device)], causal = True)
+
+                loss_pos = loss_fn(pos, samples[2].reshape(-1, 1).to(self.device).float()) # Positive Loss
                 
-                loss_pos = loss_function_BCE(pos, samples[2].reshape(-1, 1).to(self.device).float()) # Positive Loss
+                random_label = torch.normal(mean = 0.0, std = 1.0, size = (pos.shape[0], 1)).to(self.device)
                 
-                random_label = torch.ones_like(neg, dtype=torch.float).to(self.device) / self.num_classes
-                loss_neg = F.kl_div(neg, random_label, reduction = 'batchmean')
+                loss_neg = loss_fn(neg, random_label)
                 
                 loss = loss + loss_pos + self.args.lam1 * loss_neg
                 
                 # Intervention Loss
                 if self.args.intervention:
-                    loss_inv = self.args.lam2 * loss_function_BCE(rand, samples[2].reshape(-1, 1).to(self.device).float())
+                    loss_inv = self.args.lam2 * loss_fn(rand, samples[2].reshape(-1, 1).to(self.device).float())
                     loss += loss_inv
                     self.loss_inv += loss_inv
+                
                 
                 loss.backward()
                 self.optimizer.step()
@@ -79,13 +78,11 @@ class CAMPS_ModelTrainer(embedder):
                 self.loss_pos += loss_pos
                 self.loss_neg += loss_neg
                 self.importance += torch.sigmoid(self.model.importance).mean()
-            
-            self.epoch_time = time.time() - start
 
             self.model.eval()
             self.evaluate(epoch)
 
-            self.scheduler.step(self.val_roc_score)
+            self.scheduler.step(self.val_loss)
             
             # Write Statistics
             self.writer.add_scalar("loss/positive", self.loss_pos/bc, epoch)
@@ -95,37 +92,35 @@ class CAMPS_ModelTrainer(embedder):
             self.writer.add_scalar("stats/importance", self.importance/bc, epoch)
 
             # Early stopping
-            if len(self.best_val_rocs) > int(self.args.es / self.args.eval_freq):
-                if self.best_val_rocs[-1] == self.best_val_rocs[-int(self.args.es / self.args.eval_freq)]:
-                    if self.best_val_accs[-1] == self.best_val_accs[-int(self.args.es / self.args.eval_freq)]:
-                        self.is_early_stop = True
-                        break
+            if len(self.best_val_losses) > int(self.args.es / self.args.eval_freq):
+                if self.best_val_losses[-1] == self.best_val_losses[-int(self.args.es / self.args.eval_freq)]:
+                    self.is_early_stop = True
+                    break
 
         self.evaluate(epoch, final = True)
         self.writer.close()
         
-        return self.best_test_roc, self.best_test_ap, self.best_test_f1, self.best_test_acc
+        return self.best_test_loss, self.best_test_mae_loss
 
 
-class CAMPS(nn.Module):
+class CMRL(nn.Module):
     """
     This the main class for CIGIN model
     """
 
     def __init__(self,
                 device,
-                node_input_dim=133,
-                edge_input_dim=14,
-                node_hidden_dim=300,
-                edge_hidden_dim=300,
+                node_input_dim=52,
+                edge_input_dim=10,
+                node_hidden_dim=52,
+                edge_hidden_dim=52,
                 num_step_message_passing=3,
                 num_step_set2_set=2,
                 num_layer_set2set=1,
-                num_classes = 2,
                 intervention = False,
                 conditional = False
                 ):
-        super(CAMPS, self).__init__()
+        super(CMRL, self).__init__()
 
         self.device = device
         self.node_input_dim = node_input_dim
@@ -136,9 +131,14 @@ class CAMPS(nn.Module):
         self.intervention = intervention
         self.conditional = conditional
 
-        self.gather = GINE(self.node_input_dim, self.edge_input_dim, 
-                            self.node_hidden_dim, self.num_step_message_passing,
-                            )
+        self.solute_gather = GatherModel(self.node_input_dim, self.edge_input_dim,
+                                         self.node_hidden_dim, self.edge_input_dim,
+                                         self.num_step_message_passing,
+                                         )
+        self.solvent_gather = GatherModel(self.node_input_dim, self.edge_input_dim,
+                                          self.node_hidden_dim, self.edge_input_dim,
+                                          self.num_step_message_passing,
+                                          )
         
         self.compressor = nn.Sequential(
             nn.Linear(2 * self.node_hidden_dim, self.node_hidden_dim),
@@ -147,9 +147,15 @@ class CAMPS(nn.Module):
             nn.Linear(self.node_hidden_dim, 1)
             )
 
-        self.predictor = nn.Linear(8 * self.node_hidden_dim, 1)
+        self.predictor = nn.Sequential(
+            nn.Linear(8 * self.node_hidden_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 1)
+        )
 
-        self.neg_predictor = nn.Linear(2 * self.node_hidden_dim, num_classes)
+        self.neg_predictor = nn.Linear(2 * self.node_hidden_dim, 1)
 
         self.rand_predictor = nn.Linear(10 * self.node_hidden_dim, 1)
 
@@ -212,12 +218,14 @@ class CAMPS(nn.Module):
         self.solute_len = data[2]
         self.solvent_len = data[3]
         # node embeddings after interaction phase
-        _solute_features = self.gather(solute)
-        _solvent_features = self.gather(solvent)
+        _solute_features = self.solute_gather(solute)
+        _solvent_features = self.solvent_gather(solvent)
 
         solute_features, solvent_features = self.interaction(_solute_features, _solvent_features)
 
-        if (test == True) or (causal == False):
+        if test == True:
+
+            _, importance = self.compress(solute_features)
 
             solute_features_s2s = self.set2set_pos_solute(solute_features, solute.batch)
             solvent_features_s2s = self.set2set_solvent(solvent_features, solvent.batch)
@@ -225,10 +233,17 @@ class CAMPS(nn.Module):
             solute_solvent = torch.cat((solute_features_s2s, solvent_features_s2s), 1)
             predictions = self.predictor(solute_solvent)
 
-            if test: 
-                return torch.sigmoid(predictions)
-            else:
-                return predictions
+            return predictions, importance
+
+        elif causal == False:
+
+            solute_features_s2s = self.set2set_pos_solute(solute_features, solute.batch)
+            solvent_features_s2s = self.set2set_solvent(solvent_features, solvent.batch)
+
+            solute_solvent = torch.cat((solute_features_s2s, solvent_features_s2s), 1)
+            predictions = self.predictor(solute_solvent)
+
+            return predictions
 
         else:
 
@@ -285,6 +300,6 @@ class CAMPS(nn.Module):
                     rand_solute_solvent = torch.cat((pos_solute_s2s, solvent_features_s2s, neg_solute[random_idx]), 1)
                     random_predictions = self.rand_predictor(rand_solute_solvent)
 
-                return pos_predictions, F.log_softmax(neg_predictions, dim = -1), random_predictions
+                return pos_predictions, neg_predictions, random_predictions
         
-            return pos_predictions, F.log_softmax(neg_predictions, dim = -1), None
+            return pos_predictions, neg_predictions, None
