@@ -8,7 +8,7 @@
     <img src="https://img.shields.io/pypi/l/torch-rechub">
 </p>
 
-The official source code for Shift-Robust Molecular Relational Learning with Causal Substructure, accepted at KDD 2023.
+The official source code for [**Shift-Robust Molecular Relational Learning with Causal Substructure**](https://arxiv.org/abs/2305.18451), accepted at KDD 2023.
 
 ## How to run the code
 We provide `Readme.md` file for detailed instructions for running our code.
